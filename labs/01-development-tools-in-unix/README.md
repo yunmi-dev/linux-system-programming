@@ -84,6 +84,42 @@
     ```
 
 ### make (빌드 자동화)
+- 여러 파일로 구성된 프로그램의 빌드 과정을 자동화
+- Makefile 구성 요소
+    - 의존성 라인: `타겟: [사전조건] [; 명령]`
+    - 명령 라인: `탭 [@] 명령`
+    - 매크로 정의: `이름 = 문자열`
+    - 주석: `# 주석`
+
+- 내부 매크로
+    - $@: 현재 타겟의 이름
+    - $<: 현재 사전조건의 이름
+    - $^: 모든 사전조건 목록
+    - $?: 타겟보다 새로운 사전조건 목록
+    - $*: 접미사 없는 현재 사전조건의 이름
+
+- 기본 Makefile 예시
+    ```makefile
+    CC = gcc
+    CFLAGS = -I../inc -g
+    LDFLAGS = -L. -lmine
+    
+    TARGET = hello
+    OBJS = hello.o
+    
+    .SUFFIXES : .c .o
+    .c.o :
+        $(CC) -c $(CFLAGS) $
+    
+    $(TARGET) : $(OBJS) libmine.a
+        $(CC) -o $@ $(OBJS) $(LDFLAGS)
+    
+    libmine.a : mystrcpy.o
+        ar ruv libmine.a mystrcpy.o
+    
+    clean :
+        rm -rf libmine.a $(TARGET) *.o
+    ```
 
 ### gdb (디버거)
 - GNU Source-Level Debugger
@@ -94,14 +130,149 @@
     - -d directory: add _directory_ for source files
     - -q: do not print the introductory and copyright messages
 
+- 실행 명령어
+    - break [파일:]라인번호: 지정된 위치에 중단점 설정
+    - break [파일:]함수이름: 지정된 함수 진입점에 중단점 설정
+    - run [인자목록]: 프로그램 실행
+    - print 표현식: 표현식 값 한 번만 출력
+    - display 표현식: 중단점마다 표현식 값 계속 출력
+    - cont: 실행 계속
+    - next [n]: 다음 n줄 실행 (함수 호출 시 함수 내부로 들어가지 않음)
+    - step: 다음 줄 실행 (함수 내부로 들어감)
+    - quit: 디버깅 종료
 
-## 실습 프로젝트에서 문자열 복사 및 메모리 오류
+## 실습 프로젝트: 문자열 복사 및 메모리 오류
 
-* 메모리 오류 디버깅
-
+### 문자열 복사 함수 구현
 ```c
-char *bug = NULL;
-strcpy(bug, "hi");  // 메모리가 할당되지 않은 포인터에 쓰는 걸 시도함.
+// mystrcpy.c
+#include <string.h>
+
+void mystrcpy(char *dst, char *src) {
+    while (*src) {
+        *dst++ = *src++;
+    }
+    *dst = *src;
+}
 ```
 
-이를 GDB를 통해 디버깅하는 과정을 배웠다.
+### 메인 프로그램
+```c
+// hello.c
+#include <stdio.h>
+
+int main() {
+    char str[80];
+    
+    mystrcpy(str, "Hello, World!");
+    puts(str);
+    
+    return 0;
+}
+```
+
+### 라이브러리 생성 및 링킹
+
+```bash
+# mystrcpy.c를 컴파일하여 목적 파일 생성
+$ gcc -c mystrcpy.c
+
+# 목적 파일을 라이브러리로 아카이브
+$ ar ruv libmine.a mystrcpy.o
+
+# 라이브러리를 링크하여 실행 파일 생성
+$ gcc -o hello -L. hello.c -lmine
+
+# 실행
+$ ./hello
+Hello, World!
+```
+
+### 메모리 오류를 GDB를 사용한 디버깅 실습
+
+```c
+// bug.c
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    int i;
+    double j;
+    char *bug = NULL;
+    
+    for (i = 0; i < 5; i++) {
+        j = i/2 + i;
+        printf("j is %lf \n", j);
+    }
+    
+    strcpy(bug, "hi");  // 메모리가 할당되지 않은 포인터에 쓰기 시도
+    printf("bug is %s \n", bug);
+    
+    return 0;
+}
+```
+
+```bash
+# 디버깅 정보를 포함하여 컴파일
+$ gcc -g bug.c
+
+# GDB 디버거 실행
+$ gdb a.out
+
+# 실행 전 중단점 설정 (for 루프 시작 부분)
+(gdb) break 10
+Breakpoint 1 at 0x760: file bug.c, line 10.
+
+# 프로그램 실행
+(gdb) run
+Starting program: /path/to/a.out
+[Thread debugging using libthread_db enabled]
+
+Breakpoint 1, main () at bug.c:10
+10              int i;
+
+# 한 줄씩 실행하며 변수 상태 확인
+(gdb) next
+11              double j;
+(gdb) next
+12              char *bug = NULL;
+(gdb) next
+...
+
+# 변수 값 출력
+(gdb) print i
+$1 = 2
+(gdb) print j 
+$2 = 3.000000
+
+# 포인터 변수 상태 확인
+(gdb) print bug
+$3 = 0x0
+
+# 실행 계속하기
+(gdb) continue
+Continuing.
+j is 6.000000 
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000aaaaaaaa07c8 in main () at bug.c:15
+15              strcpy(bug, "hi");
+```
+
+- 이 디버깅 세션에서 확인할 수 있는 중요한 점
+    - bug 포인터가 NULL(0x0)로 초기화되었음을 확인
+    - strcpy(bug, "hi") 라인에서 세그멘테이션 폴트가 발생!!!
+    - NULL 포인터에 데이터를 쓰려고 시도했기 때문
+
+이 문제를 해결하려면 문자열을 복사하기 전에 메모리를 할당해야 한다. (메모리 할당 없이 포인터 사용할 때의 위험성)
+
+```c
+// 수정된 코드
+char *bug = (char *)malloc(3); // "hi"와 널 종료 문자를 위한 공간
+if (bug != NULL) {
+    strcpy(bug, "hi");
+    printf("bug is %s \n", bug);
+    free(bug); // 메모리 해제
+}
+```
+서버 애플리케이션에서 이런 메모리 관리 문제는 심각한 보안 취약점이나 시스템 불안정성을 초래할 수 있어 철저한 디버깅이 필수

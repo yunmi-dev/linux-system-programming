@@ -3,7 +3,7 @@ CFLAGS =
 LDFLAGS = -L. -lmine
 
 TARGET = hello
-OBJS = hello.o
+OBJS = hello.o 
 
 .SUFFIXES : .c .o
 .c.o :

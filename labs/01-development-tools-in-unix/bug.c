@@ -3,7 +3,7 @@
 
 /*
 bug.c 프로그램에선 의도적으로 NULL 포인터에 문자열을 copy하여 Segmentation Fault를 발생시킨다.
-*/
+*/ 
  
 int main()
 {
