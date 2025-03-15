@@ -1,3 +1,10 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
 # Prerequisites
 *.d
 
@@ -50,3 +57,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# 특정 실행파일
+hello
+bug
