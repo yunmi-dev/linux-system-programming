@@ -1,9 +1,9 @@
 CC = gcc
-CFLAGS = 
-LDFLAGS = 
+CFLAGS =
+LDFLAGS =
 
-.SUFFIXES: .c.o
-.c.o:
+.SUFFIXES : .c .o
+.c.o :
 	$(CC) -c $(CFLAGS) $<
 
 ALL = hello output input args string
@@ -25,5 +25,5 @@ args: args.o
 string: string.o
 	$(CC) -o $@ $< $(LDFLAGS)
 
-clean:
+clean :
 	rm -rf *.o $(ALL)
