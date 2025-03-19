@@ -1,23 +1,28 @@
 CC = gcc
-CFLAGS = 
-LDFLAGS = 
+CFLAGS =
+LDFLAGS =
 
-.SUFFIXES: .c.o
-.c.o:
+.SUFFIXES : .c .o
+.c.o :
 	$(CC) -c $(CFLAGS) $<
 
-ALL = mycp hole list tcp1 tcp2 mycp2 split merge conv access tab upper
+ALL = mycp hole list tcp1 tcp2 mycp2 split merge conv access tab
 
 all: $(ALL)
-	$(CC) -o $@ $< $(LDFLAGS)
 
 mycp: mycp.o
+	$(CC) -o $@ $< $(LDFLAGS)
+
+hole: hole.o
 	$(CC) -o $@ $< $(LDFLAGS)
 
 list: list.o
 	$(CC) -o $@ $< $(LDFLAGS)
 
 tcp1: tcp1.o
+	$(CC) -o $@ $< $(LDFLAGS)
+
+tcp2: tcp2.o
 	$(CC) -o $@ $< $(LDFLAGS)
 
 mycp2: mycp2.o
@@ -38,9 +43,5 @@ access: access.o
 tab: tab.o
 	$(CC) -o $@ $< $(LDFLAGS)
 
-upper: upper.o
-	$(CC) -o $@ $< $(LDFLAGS)
-
-clean:
-	rm -rf *.o $(ALL)
-	rm -rf file.hole
+clean :
+	rm -rf *.o $(ALL) file.hole
